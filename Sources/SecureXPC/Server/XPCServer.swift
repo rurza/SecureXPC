@@ -304,7 +304,7 @@ public class XPCServer {
     @available(macOS 10.15.0, *)
     public func registerRoute<S: Encodable>(
         _ route: XPCRouteWithoutMessageWithSequentialReply<S>,
-        handler: @escaping (SequentialResultProvider<S>) async -> Void
+        handler: @escaping (SequentialResultProvider<S>) async throws -> Void
     ) {
         let constrainedHandler = ConstrainedXPCHandlerWithoutMessageWithSequentialReplyAsync(handler: handler)
         self.registerRoute(route.route, handler: constrainedHandler)
@@ -863,8 +863,8 @@ fileprivate struct ConstrainedXPCHandlerWithMessageWithReplyAsync<M: Decodable, 
 @available(macOS 10.15.0, *)
 fileprivate struct ConstrainedXPCHandlerWithoutMessageWithSequentialReplyAsync<S: Encodable>: XPCHandlerAsync {
     var shouldCreateReply = false
-    let handler: (SequentialResultProvider<S>) async -> Void
-    
+    let handler: (SequentialResultProvider<S>) async throws -> Void
+
     func handle(
         request: Request,
         server: XPCServer,
@@ -873,7 +873,7 @@ fileprivate struct ConstrainedXPCHandlerWithoutMessageWithSequentialReplyAsync<S
     ) async throws {
         try checkRequest(request, reply: &reply, messageType: nil, replyType: nil, sequentialReplyType: S.self)
         let sequenceProvider = SequentialResultProvider<S>(request: request, server: server, connection: connection)
-        await self.handler(sequenceProvider)
+        try await self.handler(sequenceProvider)
     }
 }
 
